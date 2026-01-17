@@ -11,7 +11,7 @@ import { generateCrossword } from './crosswordService.js';
  */
 async function codeExists(code) {
   const { data } = await supabase
-    .from('games')
+    .from('zwords_games')
     .select('id')
     .eq('code', code)
     .single();
@@ -30,7 +30,7 @@ export async function createGame(ownerPseudo, theme = 'general', difficulty = 'e
   
   // Creer la partie
   const { data: game, error: gameError } = await supabase
-    .from('games')
+    .from('zwords_games')
     .insert({
       code,
       owner_pseudo: ownerPseudo,
@@ -47,7 +47,7 @@ export async function createGame(ownerPseudo, theme = 'general', difficulty = 'e
   
   // Creer la grille
   const { data: crossword, error: crosswordError } = await supabase
-    .from('crosswords')
+    .from('zwords_crosswords')
     .insert({
       game_id: game.id,
       index_number: 1,
@@ -64,7 +64,7 @@ export async function createGame(ownerPseudo, theme = 'general', difficulty = 'e
   
   // Mettre a jour current_crossword_id
   await supabase
-    .from('games')
+    .from('zwords_games')
     .update({ current_crossword_id: crossword.id })
     .eq('id', game.id);
   
@@ -79,7 +79,7 @@ export async function createGame(ownerPseudo, theme = 'general', difficulty = 'e
  */
 export async function getGameByCode(code) {
   const { data: game, error } = await supabase
-    .from('games')
+    .from('zwords_games')
     .select('*')
     .eq('code', code.toUpperCase())
     .single();
@@ -96,7 +96,7 @@ export async function getGameByCode(code) {
  */
 export async function getCurrentCrossword(gameId) {
   const { data: game } = await supabase
-    .from('games')
+    .from('zwords_games')
     .select('current_crossword_id')
     .eq('id', gameId)
     .single();
@@ -106,7 +106,7 @@ export async function getCurrentCrossword(gameId) {
   }
   
   const { data: crossword } = await supabase
-    .from('crosswords')
+    .from('zwords_crosswords')
     .select('id, game_id, index_number, grid_data, clues, created_at')
     .eq('id', game.current_crossword_id)
     .single();
@@ -119,7 +119,7 @@ export async function getCurrentCrossword(gameId) {
  */
 export async function getPlayers(gameId) {
   const { data: players } = await supabase
-    .from('players')
+    .from('zwords_players')
     .select('*')
     .eq('game_id', gameId)
     .order('score_total', { ascending: false });
@@ -132,7 +132,7 @@ export async function getPlayers(gameId) {
  */
 export async function upsertPlayer(gameId, pseudo, color) {
   const { data: player, error } = await supabase
-    .from('players')
+    .from('zwords_players')
     .upsert({
       game_id: gameId,
       pseudo,
@@ -157,7 +157,7 @@ export async function upsertPlayer(gameId, pseudo, color) {
  */
 export async function getGridCells(crosswordId) {
   const { data: cells } = await supabase
-    .from('grid_cells')
+    .from('zwords_grid_cells')
     .select('*')
     .eq('crossword_id', crosswordId);
   
@@ -175,7 +175,7 @@ export async function getGridCells(crosswordId) {
  */
 export async function updateCell(crosswordId, row, col, value, pseudo) {
   const { error } = await supabase
-    .from('grid_cells')
+    .from('zwords_grid_cells')
     .upsert({
       crossword_id: crosswordId,
       row,
@@ -198,7 +198,7 @@ export async function updateCell(crosswordId, row, col, value, pseudo) {
  */
 export async function getEntryClaims(crosswordId) {
   const { data: claims } = await supabase
-    .from('entry_claims')
+    .from('zwords_entry_claims')
     .select('*')
     .eq('crossword_id', crosswordId);
   
@@ -210,7 +210,7 @@ export async function getEntryClaims(crosswordId) {
  */
 export async function isEntryClaimed(crosswordId, entryId) {
   const { data } = await supabase
-    .from('entry_claims')
+    .from('zwords_entry_claims')
     .select('id')
     .eq('crossword_id', crosswordId)
     .eq('entry_id', entryId)
@@ -225,7 +225,7 @@ export async function isEntryClaimed(crosswordId, entryId) {
 export async function claimEntry(crosswordId, entryId, pseudo) {
   // Insert claim
   const { error: claimError } = await supabase
-    .from('entry_claims')
+    .from('zwords_entry_claims')
     .insert({
       crossword_id: crosswordId,
       entry_id: entryId,
@@ -239,13 +239,13 @@ export async function claimEntry(crosswordId, entryId, pseudo) {
   
   // Recuperer game_id depuis crossword
   const { data: crossword } = await supabase
-    .from('crosswords')
+    .from('zwords_crosswords')
     .select('game_id')
     .eq('id', crosswordId)
     .single();
   
   // Incrementer score du joueur
-  const { error: scoreError } = await supabase.rpc('increment_player_score', {
+  const { error: scoreError } = await supabase.rpc('zwords_increment_player_score', {
     p_game_id: crossword.game_id,
     p_pseudo: pseudo
   });
@@ -253,7 +253,7 @@ export async function claimEntry(crosswordId, entryId, pseudo) {
   // Si la fonction RPC n'existe pas, faire manuellement
   if (scoreError) {
     const { data: player } = await supabase
-      .from('players')
+      .from('zwords_players')
       .select('score_total')
       .eq('game_id', crossword.game_id)
       .eq('pseudo', pseudo)
@@ -261,7 +261,7 @@ export async function claimEntry(crosswordId, entryId, pseudo) {
     
     if (player) {
       await supabase
-        .from('players')
+        .from('zwords_players')
         .update({ score_total: (player.score_total || 0) + 1 })
         .eq('game_id', crossword.game_id)
         .eq('pseudo', pseudo);
@@ -274,7 +274,7 @@ export async function claimEntry(crosswordId, entryId, pseudo) {
  */
 export async function getAnswers(crosswordId) {
   const { data: crossword } = await supabase
-    .from('crosswords')
+    .from('zwords_crosswords')
     .select('answers_encrypted')
     .eq('id', crosswordId)
     .single();
@@ -287,7 +287,7 @@ export async function getAnswers(crosswordId) {
  */
 export async function isGridComplete(crosswordId) {
   const { data: crossword } = await supabase
-    .from('crosswords')
+    .from('zwords_crosswords')
     .select('clues')
     .eq('id', crosswordId)
     .single();
@@ -297,7 +297,7 @@ export async function isGridComplete(crosswordId) {
   const totalEntries = crossword.clues.across.length + crossword.clues.down.length;
   
   const { count } = await supabase
-    .from('entry_claims')
+    .from('zwords_entry_claims')
     .select('*', { count: 'exact', head: true })
     .eq('crossword_id', crosswordId);
   
@@ -310,14 +310,14 @@ export async function isGridComplete(crosswordId) {
 export async function nextGrid(gameId) {
   // Recuperer la grille courante
   const { data: game } = await supabase
-    .from('games')
-    .select('*, crosswords!current_crossword_id(*)')
+    .from('zwords_games')
+    .select('*, zwords_crosswords!current_crossword_id(*)')
     .eq('id', gameId)
     .single();
   
   if (!game) throw new Error('Partie non trouvee');
   
-  const currentCrossword = game.crosswords;
+  const currentCrossword = game.zwords_crosswords;
   
   // Recuperer l'etat final des cellules
   const finalCells = await getGridCells(currentCrossword.id);
@@ -332,7 +332,7 @@ export async function nextGrid(gameId) {
   
   // Mettre a jour la grille avec l'etat final
   await supabase
-    .from('crosswords')
+    .from('zwords_crosswords')
     .update({
       final_grid_state: finalCells,
       final_scores: finalScores,
@@ -344,7 +344,7 @@ export async function nextGrid(gameId) {
   const { gridData, clues, answers } = generateCrossword(game.theme, game.difficulty);
   
   const { data: newCrossword, error } = await supabase
-    .from('crosswords')
+    .from('zwords_crosswords')
     .insert({
       game_id: gameId,
       index_number: currentCrossword.index_number + 1,
@@ -359,7 +359,7 @@ export async function nextGrid(gameId) {
   
   // Mettre a jour la partie
   await supabase
-    .from('games')
+    .from('zwords_games')
     .update({ current_crossword_id: newCrossword.id })
     .eq('id', gameId);
   
@@ -371,7 +371,7 @@ export async function nextGrid(gameId) {
  */
 export async function listActiveGames() {
   const { data: games } = await supabase
-    .from('games')
+    .from('zwords_games')
     .select(`
       id,
       code,
@@ -380,14 +380,14 @@ export async function listActiveGames() {
       difficulty,
       status,
       created_at,
-      players(count)
+      zwords_players(count)
     `)
     .eq('status', 'active')
     .order('created_at', { ascending: false });
   
   return (games || []).map(g => ({
     ...g,
-    playerCount: g.players?.[0]?.count || 0
+    playerCount: g.zwords_players?.[0]?.count || 0
   }));
 }
 
@@ -396,7 +396,7 @@ export async function listActiveGames() {
  */
 export async function deleteGame(gameId) {
   await supabase
-    .from('games')
+    .from('zwords_games')
     .delete()
     .eq('id', gameId);
 }

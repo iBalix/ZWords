@@ -22,7 +22,7 @@ export const MESSAGE_TYPES = {
  */
 export async function addMessage(gameId, type, pseudo, color, content, payload = null) {
   const { data, error } = await supabase
-    .from('messages')
+    .from('zwords_messages')
     .insert({
       game_id: gameId,
       type,
@@ -47,7 +47,7 @@ export async function addMessage(gameId, type, pseudo, color, content, payload =
  */
 export async function getMessages(gameId, limit = 100) {
   const { data: messages } = await supabase
-    .from('messages')
+    .from('zwords_messages')
     .select('*')
     .eq('game_id', gameId)
     .order('created_at', { ascending: false })

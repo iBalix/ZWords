@@ -27,7 +27,7 @@ router.get('/:code/history', async (req, res) => {
     
     // Recuperer les grilles terminees (avec completed_at)
     const { data: crosswords } = await supabase
-      .from('crosswords')
+      .from('zwords_crosswords')
       .select('id, index_number, created_at, completed_at')
       .eq('game_id', game.id)
       .not('completed_at', 'is', null)
@@ -65,7 +65,7 @@ router.get('/:code/history/:crosswordId', async (req, res) => {
     
     // Recuperer la grille avec l'etat final
     const { data: crossword } = await supabase
-      .from('crosswords')
+      .from('zwords_crosswords')
       .select('*')
       .eq('id', crosswordId)
       .eq('game_id', game.id)
@@ -77,7 +77,7 @@ router.get('/:code/history/:crosswordId', async (req, res) => {
     
     // Recuperer les claims pour cette grille
     const { data: claims } = await supabase
-      .from('entry_claims')
+      .from('zwords_entry_claims')
       .select('entry_id, claimed_by_pseudo, claimed_at')
       .eq('crossword_id', crosswordId);
     
