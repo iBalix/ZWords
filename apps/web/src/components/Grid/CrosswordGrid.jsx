@@ -107,20 +107,29 @@ export default function CrosswordGrid({
     return { isClaimed: false, colors: [] };
   };
   
-  // Taille des cellules
-  const cellSize = 55;
+  // Taille des cellules responsive
+  // Sur mobile: 40px, sur tablet: 48px, sur desktop: 55px
+  const getCellSize = () => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 640) return 38;
+      if (window.innerWidth < 1024) return 46;
+    }
+    return 55;
+  };
+  
+  const cellSize = getCellSize();
   
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-white rounded-lg shadow-xl p-2 overflow-auto"
+      className="bg-white rounded-lg shadow-xl p-1 sm:p-2 overflow-auto max-w-full"
     >
       <div 
-        className="grid gap-0"
+        className="grid gap-0 grid-cells-container"
         style={{
-          gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
-          gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
+          gridTemplateColumns: `repeat(${cols}, minmax(38px, 55px))`,
+          gridTemplateRows: `repeat(${rows}, minmax(38px, 55px))`,
         }}
       >
         {gridCells.map((cell) => {

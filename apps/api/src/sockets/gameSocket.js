@@ -55,9 +55,6 @@ export function initializeSocketHandlers(io) {
         // Enregistrer la presence
         presence.setPresence(socket.id, gameCode, pseudo, color);
         
-        // Log le join
-        await messageService.logJoin(game.id, pseudo, color);
-        
         // Envoyer l'etat complet au nouveau joueur
         const crossword = await gameService.getCurrentCrossword(game.id);
         const players = await gameService.getPlayers(game.id);
@@ -370,27 +367,8 @@ async function handleLeave(socket) {
       
       socket.leave(gameCode);
       
-      // Recuperer la couleur du joueur
-      const game = await gameService.getGameByCode(gameCode);
-      if (game) {
-        const players = await gameService.getPlayers(game.id);
-        const player = players.find(p => p.pseudo === pseudo);
-        const color = player?.color || '#888888';
-        
-        // Log le leave
-        await messageService.logLeave(game.id, pseudo, color);
-        
-        // Notifier les autres
-        socket.to(gameCode).emit('presence_remove', { pseudo });
-        
-        socket.to(gameCode).emit('message_broadcast', {
-          type: 'log_leave',
-          pseudo,
-          color,
-          content: `${pseudo} a quitté la partie`,
-          createdAt: new Date().toISOString()
-        });
-      }
+      // Notifier les autres de la deconnexion
+      socket.to(gameCode).emit('presence_remove', { pseudo });
     }
   } catch (error) {
     console.error('❌ Erreur handleLeave:', error);

@@ -303,57 +303,57 @@ export default function GamePage() {
   
   return (
     <div className="min-h-screen bg-gradient-game flex flex-col">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      {/* Header - Responsive */}
+      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => navigate('/')}
-              className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-800 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-display tracking-wider">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <h1 className="text-base sm:text-xl font-display tracking-wider hidden sm:block">
                 Z<span className="text-zwords-accent">WORDS</span>
               </h1>
-              <span className="px-3 py-1 font-mono text-lg bg-gray-800 rounded border border-gray-700">
+              <span className="px-2 sm:px-3 py-1 font-mono text-sm sm:text-lg bg-gray-800 rounded border border-gray-700">
                 {code}
               </span>
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {!connected && (
-              <span className="text-red-400 flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Connexion...
+              <span className="text-red-400 flex items-center gap-1 text-xs sm:text-base">
+                <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                <span className="hidden sm:inline">Connexion...</span>
               </span>
             )}
             
             {isOwner && (
               <span className="flex items-center gap-1 text-yellow-400">
-                <Crown className="w-4 h-4" />
-                Owner
+                <Crown className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Owner</span>
               </span>
             )}
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <div 
-                className="w-4 h-4 rounded-full" 
+                className="w-3 h-3 sm:w-4 sm:h-4 rounded-full" 
                 style={{ backgroundColor: color }}
               />
-              <span className="font-medium">{pseudo}</span>
+              <span className="font-medium text-xs sm:text-base truncate max-w-[60px] sm:max-w-none">{pseudo}</span>
             </div>
           </div>
         </div>
       </header>
       
-      {/* Contenu principal - 2 colonnes: Grille + Panel droit */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Contenu principal - Responsive 2 colonnes */}
+      <main className="flex-1 w-full px-2 sm:px-4 py-2 sm:py-4 flex flex-col lg:flex-row gap-3 sm:gap-4 overflow-auto">
         {/* Colonne centrale - Grille */}
-        <div className="lg:col-span-2 flex flex-col items-center">
+        <div className="flex-1 flex flex-col items-center min-w-0">
           {!isLoaded ? (
             <div className="flex-1 flex items-center justify-center">
               <RefreshCw className="w-8 h-8 animate-spin text-zwords-accent" />
@@ -430,7 +430,7 @@ export default function GamePage() {
         </div>
         
         {/* Colonne droite - Scoreboard + Chat + History */}
-        <div className="lg:col-span-1 space-y-4 flex flex-col">
+        <div className="w-full lg:w-80 xl:w-96 space-y-3 sm:space-y-4 flex flex-col flex-shrink-0">
           <Scoreboard 
             scores={scoreboard} 
             myPseudo={pseudo}

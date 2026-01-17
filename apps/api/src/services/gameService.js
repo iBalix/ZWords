@@ -25,8 +25,8 @@ export async function createGame(ownerPseudo, theme = 'general', difficulty = 'e
   // Generer code unique
   const code = await generateUniqueCode(codeExists);
   
-  // Generer la grille
-  const { gridData, clues, answers } = generateCrossword(theme, difficulty);
+  // Generer la grille (async car peut utiliser une API externe)
+  const { gridData, clues, answers } = await generateCrossword(theme, difficulty);
   
   // Creer la partie
   const { data: game, error: gameError } = await supabase
@@ -350,7 +350,7 @@ export async function nextGrid(gameId) {
     .eq('id', currentCrossword.id);
   
   // Creer nouvelle grille
-  const { gridData, clues, answers } = generateCrossword(game.theme, game.difficulty);
+  const { gridData, clues, answers } = await generateCrossword(game.theme, game.difficulty);
   
   const { data: newCrossword, error } = await supabase
     .from('zwords_crosswords')

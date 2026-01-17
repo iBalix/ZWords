@@ -110,33 +110,33 @@ export default function LobbyPage() {
   
   return (
     <div className="min-h-screen bg-gradient-game">
-      {/* Header */}
+      {/* Header - Responsive */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <h1 className="text-3xl font-display text-white tracking-wider">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <h1 className="text-2xl sm:text-3xl font-display text-white tracking-wider">
             Z<span className="text-zwords-accent">WORDS</span>
           </h1>
           
           {hasPseudo && (
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400">Connecté en tant que</span>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-gray-400 text-xs sm:text-base hidden sm:inline">Connecté en tant que</span>
               <button 
                 onClick={() => setShowPseudoModal(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
               >
                 <div 
-                  className="w-4 h-4 rounded-full" 
+                  className="w-3 h-3 sm:w-4 sm:h-4 rounded-full" 
                   style={{ backgroundColor: color || '#6366f1' }}
                 />
-                <span className="font-medium">{pseudo}</span>
+                <span className="font-medium text-sm sm:text-base truncate max-w-[80px] sm:max-w-none">{pseudo}</span>
               </button>
             </div>
           )}
         </div>
       </header>
       
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
           {/* Colonne gauche - Actions */}
           <div className="space-y-6">
             {/* Creer une partie */}
@@ -263,7 +263,7 @@ export default function LobbyPage() {
   );
 }
 
-// Composant carte de partie
+// Composant carte de partie - Responsive
 function GameCard({ game, onJoin }) {
   const [copied, setCopied] = useState(false);
   
@@ -278,37 +278,37 @@ function GameCard({ game, onJoin }) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors"
+      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors gap-3 sm:gap-4"
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={copyCode}
-          className="px-3 py-1.5 font-mono text-lg bg-gray-900 rounded border border-gray-700 hover:border-zwords-accent transition-colors"
+          className="px-2 sm:px-3 py-1 sm:py-1.5 font-mono text-base sm:text-lg bg-gray-900 rounded border border-gray-700 hover:border-zwords-accent transition-colors"
         >
           {copied ? (
-            <Check className="w-5 h-5 text-green-500" />
+            <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
           ) : (
             game.code
           )}
         </button>
         
-        <div>
-          <p className="font-medium">{game.ownerPseudo || game.owner_pseudo}</p>
-          <p className="text-sm text-gray-400">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-sm sm:text-base truncate">{game.ownerPseudo || game.owner_pseudo}</p>
+          <p className="text-xs sm:text-sm text-gray-400">
             {game.theme} • {game.difficulty}
           </p>
         </div>
       </div>
       
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-400 flex items-center gap-1">
-          <Users className="w-4 h-4" />
+      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+        <span className="text-xs sm:text-sm text-gray-400 flex items-center gap-1">
+          <Users className="w-3 h-3 sm:w-4 sm:h-4" />
           {game.playerCount || 0}
         </span>
         
         <button
           onClick={() => onJoin(game.code)}
-          className="btn-primary py-2 px-4"
+          className="btn-primary py-1.5 sm:py-2 px-3 sm:px-4 text-sm sm:text-base"
         >
           Rejoindre
         </button>
