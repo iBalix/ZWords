@@ -286,24 +286,31 @@ export async function getAnswers(crosswordId) {
  * Verifie si la grille est terminee
  */
 export async function isGridComplete(crosswordId) {
-  const { data: crossword } = await supabase
-    .from('zwords_crosswords')
-    .select('answers_encrypted')
-    .eq('id', crosswordId)
-    .single();
-  
-  if (!crossword) return false;
-  
-  // Compter le nombre d'entries dans answers_encrypted
-  const answers = crossword.answers_encrypted || {};
-  const totalEntries = Object.keys(answers).length;
-  
-  const { count } = await supabase
-    .from('zwords_entry_claims')
-    .select('*', { count: 'exact', head: true })
-    .eq('crossword_id', crosswordId);
-  
-  return count >= totalEntries;
+  try {
+    const { data: crossword } = await supabase
+      .from('zwords_crosswords')
+      .select('answers_encrypted')
+      .eq('id', crosswordId)
+      .single();
+    
+    if (!crossword || !crossword.answers_encrypted) return false;
+    
+    // Compter le nombre d'entries dans answers_encrypted
+    const answers = crossword.answers_encrypted;
+    const totalEntries = Object.keys(answers).length;
+    
+    if (totalEntries === 0) return false;
+    
+    const { count } = await supabase
+      .from('zwords_entry_claims')
+      .select('*', { count: 'exact', head: true })
+      .eq('crossword_id', crosswordId);
+    
+    return (count || 0) >= totalEntries;
+  } catch (error) {
+    console.error('Erreur isGridComplete:', error);
+    return false;
+  }
 }
 
 /**
