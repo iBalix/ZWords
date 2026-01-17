@@ -21,7 +21,7 @@ import HistoryPanel from '../components/History/HistoryPanel';
 export default function GamePage() {
   const { code } = useParams();
   const navigate = useNavigate();
-  const { pseudo, color, hasPseudo, ensureColor } = useLocalPlayer();
+  const { pseudo, color, hasPseudo, isLoaded: playerLoaded, ensureColor } = useLocalPlayer();
   
   const [showHistory, setShowHistory] = useState(false);
   
@@ -56,13 +56,13 @@ export default function GamePage() {
     setDirection,
   } = gameState;
   
-  // Rediriger si pas de pseudo
+  // Rediriger si pas de pseudo (attendre que le localStorage soit charge)
   useEffect(() => {
-    if (!hasPseudo) {
+    if (playerLoaded && !hasPseudo) {
       navigate('/');
       toast.error('Veuillez choisir un pseudo');
     }
-  }, [hasPseudo, navigate]);
+  }, [playerLoaded, hasPseudo, navigate]);
   
   // Handler d'evenements socket
   const handleSocketEvent = useCallback((event, data) => {
@@ -225,7 +225,8 @@ export default function GamePage() {
   // Verifier si on est l'owner
   const isOwner = game?.ownerPseudo === pseudo;
   
-  if (!hasPseudo) {
+  // Attendre le chargement du localStorage
+  if (!playerLoaded || !hasPseudo) {
     return null;
   }
   
