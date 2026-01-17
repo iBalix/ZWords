@@ -2,6 +2,7 @@
  * Composant grille de mots fleches
  */
 
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import GridCell from './GridCell';
 
@@ -15,44 +16,76 @@ export default function CrosswordGrid({
   myPseudo,
   incorrectCells,
   onCellClick,
+  onClueClick,
 }) {
   if (!gridData) return null;
   
   const { rows, cols, cells: gridCells } = gridData;
   
   // Construire la map des claims par entryId
-  const claimedEntries = new Set();
-  for (const claim of claims) {
-    claimedEntries.add(claim.entryId);
-  }
+  const claimedEntries = useMemo(() => {
+    const set = new Set();
+    for (const claim of claims) {
+      set.add(claim.entryId);
+    }
+    return set;
+  }, [claims]);
+  
+  // Construire la map des cellules verrouillees (font partie d'un mot claim)
+  const lockedCells = useMemo(() => {
+    const locked = new Set();
+    for (const cell of gridCells) {
+      if (cell.type === 'letter' && cell.entryIds) {
+        const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',');
+        // Si toutes les entries de cette cellule sont claim, elle est verrouillee
+        const allClaimed = entryIds.length > 0 && entryIds.every(id => claimedEntries.has(id));
+        if (allClaimed) {
+          locked.add(`${cell.row}-${cell.col}`);
+        }
+      }
+    }
+    return locked;
+  }, [gridCells, claimedEntries]);
   
   // Construire la map des presences par cellule (autres joueurs)
-  const presenceByCell = {};
-  for (const [playerPseudo, data] of Object.entries(presence)) {
-    if (playerPseudo !== myPseudo && data.row !== null && data.col !== null) {
-      const key = `${data.row}-${data.col}`;
-      if (!presenceByCell[key]) {
-        presenceByCell[key] = [];
+  const presenceByCell = useMemo(() => {
+    const map = {};
+    for (const [playerPseudo, data] of Object.entries(presence)) {
+      if (playerPseudo !== myPseudo && data.row !== null && data.col !== null) {
+        const key = `${data.row}-${data.col}`;
+        if (!map[key]) {
+          map[key] = [];
+        }
+        map[key].push(data);
       }
-      presenceByCell[key].push(data);
     }
-  }
+    return map;
+  }, [presence, myPseudo]);
   
   // Construire la map des cellules incorrectes
-  const incorrectMap = {};
-  for (const cell of incorrectCells) {
-    incorrectMap[`${cell.row}-${cell.col}`] = true;
-  }
+  const incorrectMap = useMemo(() => {
+    const map = {};
+    for (const cell of incorrectCells) {
+      map[`${cell.row}-${cell.col}`] = true;
+    }
+    return map;
+  }, [incorrectCells]);
   
   // Verifier si une cellule fait partie d'un mot claim
   const isCellClaimed = (cell) => {
     if (cell.type !== 'letter') return false;
-    const entryIds = cell.entryIds || [];
+    const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',');
     return entryIds.some(id => claimedEntries.has(id));
   };
   
+  // Verifier si une clue est pour un mot claim
+  const isClueClaimed = (cell) => {
+    if (cell.type !== 'clue') return false;
+    return claimedEntries.has(cell.entryId);
+  };
+  
   // Taille des cellules
-  const cellSize = 50;
+  const cellSize = 55;
   
   return (
     <motion.div
@@ -73,7 +106,8 @@ export default function CrosswordGrid({
           const isSelected = selectedCell?.row === cell.row && selectedCell?.col === cell.col;
           const cellPresence = presenceByCell[key] || [];
           const isIncorrect = incorrectMap[key];
-          const isClaimed = isCellClaimed(cell);
+          const isClaimed = cell.type === 'letter' ? isCellClaimed(cell) : isClueClaimed(cell);
+          const isLocked = lockedCells.has(key);
           
           return (
             <GridCell
@@ -83,12 +117,15 @@ export default function CrosswordGrid({
               type={cell.type}
               clue={cell.clue}
               direction={cell.direction}
+              entryId={cell.entryId}
               value={value}
-              isSelected={isSelected && cell.type === 'letter'}
+              isSelected={isSelected && cell.type === 'letter' && !isLocked}
               isClaimed={isClaimed}
+              isLocked={isLocked}
               isIncorrect={isIncorrect}
               presence={cellPresence}
-              onClick={() => cell.type === 'letter' && onCellClick(cell.row, cell.col)}
+              onCellClick={onCellClick}
+              onClueClick={onClueClick}
             />
           );
         })}

@@ -41,15 +41,20 @@ body {
 
 /* Grid cell styles - Mots Fleches */
 .grid-cell-letter {
-  width: 50px;
-  height: 50px;
+  width: 55px;
+  height: 55px;
   @apply transition-all duration-150;
 }
 
 .grid-cell-clue {
-  width: 50px;
-  height: 50px;
+  width: 55px;
+  height: 55px;
   @apply overflow-hidden;
+}
+
+.grid-cell-empty {
+  width: 55px;
+  height: 55px;
 }
 
 /* Presence halo */

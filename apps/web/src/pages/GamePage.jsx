@@ -126,8 +126,18 @@ export default function GamePage() {
     handleSocketEvent
   );
   
-  // Trouver la prochaine cellule de type "letter" dans une direction
-  const findNextLetterCell = useCallback((fromRow, fromCol, rowDelta, colDelta) => {
+  // Construire le set des entries claim
+  const claimedEntries = new Set(claims.map(c => c.entryId));
+  
+  // Verifier si une cellule est verrouillee (toutes ses entries sont claim)
+  const isCellLocked = useCallback((cell) => {
+    if (cell.type !== 'letter') return false;
+    const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',').filter(Boolean);
+    return entryIds.length > 0 && entryIds.every(id => claimedEntries.has(id));
+  }, [claimedEntries]);
+  
+  // Trouver la prochaine cellule de type "letter" non verrouillee dans une direction
+  const findNextLetterCell = useCallback((fromRow, fromCol, rowDelta, colDelta, skipLocked = false) => {
     if (!crossword) return null;
     
     const { rows, cols, cells: gridCells } = crossword.gridData;
@@ -137,6 +147,12 @@ export default function GamePage() {
     while (r >= 0 && r < rows && c >= 0 && c < cols) {
       const cell = gridCells.find(cell => cell.row === r && cell.col === c);
       if (cell && cell.type === 'letter') {
+        // Si on doit sauter les cellules verrouilees
+        if (skipLocked && isCellLocked(cell)) {
+          r += rowDelta;
+          c += colDelta;
+          continue;
+        }
         return { row: r, col: c };
       }
       r += rowDelta;
@@ -144,7 +160,7 @@ export default function GamePage() {
     }
     
     return null;
-  }, [crossword]);
+  }, [crossword, isCellLocked]);
   
   // Gerer la saisie clavier
   const handleKeyDown = useCallback((e) => {
@@ -157,21 +173,28 @@ export default function GamePage() {
     if (!selectedCell || !crossword) return;
     
     const { row, col } = selectedCell;
-    const { rows, cols, cells: gridCells } = crossword.gridData;
+    const { cells: gridCells } = crossword.gridData;
     
     // Trouver la cellule actuelle
     const cell = gridCells.find(c => c.row === row && c.col === col);
     if (!cell || cell.type !== 'letter') return;
     
+    // Verifier si la cellule est verrouillee
+    const cellLocked = isCellLocked(cell);
+    
     // Lettres
     if (/^[a-zA-Z]$/.test(e.key)) {
       e.preventDefault();
-      sendCellInput(row, col, e.key.toUpperCase());
       
-      // Avancer dans la direction
+      // Ne pas permettre l'ecriture sur cellule verrouillee
+      if (!cellLocked) {
+        sendCellInput(row, col, e.key.toUpperCase());
+      }
+      
+      // Avancer dans la direction (sauter les cellules verrouilees)
       const rowDelta = direction === 'down' ? 1 : 0;
       const colDelta = direction === 'across' ? 1 : 0;
-      const nextCell = findNextLetterCell(row, col, rowDelta, colDelta);
+      const nextCell = findNextLetterCell(row, col, rowDelta, colDelta, true);
       
       if (nextCell) {
         selectCell(nextCell.row, nextCell.col);
@@ -182,12 +205,16 @@ export default function GamePage() {
     // Backspace
     else if (e.key === 'Backspace') {
       e.preventDefault();
-      sendCellInput(row, col, '');
       
-      // Reculer dans la direction
+      // Ne pas permettre l'effacement sur cellule verrouillee
+      if (!cellLocked) {
+        sendCellInput(row, col, '');
+      }
+      
+      // Reculer dans la direction (sauter les cellules verrouilees)
       const rowDelta = direction === 'down' ? -1 : 0;
       const colDelta = direction === 'across' ? -1 : 0;
-      const prevCell = findNextLetterCell(row, col, rowDelta, colDelta);
+      const prevCell = findNextLetterCell(row, col, rowDelta, colDelta, true);
       
       if (prevCell) {
         selectCell(prevCell.row, prevCell.col);
@@ -215,13 +242,14 @@ export default function GamePage() {
         case 'ArrowRight': colDelta = 1; break;
       }
       
-      const nextCell = findNextLetterCell(row, col, rowDelta, colDelta);
+      // Ne pas sauter les cellules verrouilees pour les fleches (on peut naviguer dessus)
+      const nextCell = findNextLetterCell(row, col, rowDelta, colDelta, false);
       if (nextCell) {
         selectCell(nextCell.row, nextCell.col);
         sendCursorUpdate(nextCell.row, nextCell.col, direction, null);
       }
     }
-  }, [selectedCell, crossword, direction, sendCellInput, sendCursorUpdate, selectCell, setDirection, findNextLetterCell]);
+  }, [selectedCell, crossword, direction, sendCellInput, sendCursorUpdate, selectCell, setDirection, findNextLetterCell, isCellLocked]);
   
   // Ajouter/retirer le listener clavier
   useEffect(() => {
@@ -234,6 +262,28 @@ export default function GamePage() {
     selectCell(row, col);
     sendCursorUpdate(row, col, direction, null);
   }, [selectCell, direction, sendCursorUpdate]);
+  
+  // Gerer le clic sur une definition - selectionner la 1ere cellule du mot
+  const handleClueClick = useCallback((row, col, clueDirection, entryId) => {
+    if (!crossword) return;
+    
+    // Definir la direction en fonction de la fleche
+    const newDir = clueDirection === 'right' ? 'across' : 'down';
+    setDirection(newDir);
+    
+    // Trouver la premiere cellule du mot (juste apres la definition)
+    const targetRow = clueDirection === 'right' ? row : row + 1;
+    const targetCol = clueDirection === 'right' ? col + 1 : col;
+    
+    // Verifier que c'est bien une cellule lettre
+    const { cells: gridCells } = crossword.gridData;
+    const targetCell = gridCells.find(c => c.row === targetRow && c.col === targetCol);
+    
+    if (targetCell && targetCell.type === 'letter') {
+      selectCell(targetRow, targetCol);
+      sendCursorUpdate(targetRow, targetCol, newDir, entryId);
+    }
+  }, [crossword, setDirection, selectCell, sendCursorUpdate]);
   
   // Verifier si on est l'owner
   const isOwner = game?.ownerPseudo === pseudo;
@@ -312,6 +362,7 @@ export default function GamePage() {
                 myPseudo={pseudo}
                 incorrectCells={incorrectCells}
                 onCellClick={handleCellClick}
+                onClueClick={handleClueClick}
               />
               
               {/* Indication direction */}

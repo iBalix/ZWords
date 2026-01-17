@@ -2,6 +2,7 @@
  * Composant cellule de grille - Style Mots Fleches
  * - Cellules "clue": contiennent la definition + fleche
  * - Cellules "letter": pour ecrire les lettres
+ * - Cellules "empty": cases grises de remplissage
  */
 
 import { motion } from 'framer-motion';
@@ -10,14 +11,13 @@ import { ArrowRight, ArrowDown } from 'lucide-react';
 const cellVariants = {
   idle: { scale: 1 },
   active: { scale: 1.02 },
-  typing: { 
-    scale: [1, 1.08, 1],
-    transition: { duration: 0.15 }
-  },
   incorrect: {
     x: [0, -4, 4, -4, 4, 0],
-    backgroundColor: ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.5)', 'rgba(239, 68, 68, 0.3)'],
     transition: { duration: 0.4 }
+  },
+  claimed: {
+    scale: [1, 1.1, 1],
+    transition: { duration: 0.3 }
   }
 };
 
@@ -27,73 +27,94 @@ export default function GridCell({
   type,
   clue,
   direction,
+  entryId,
   value,
   isSelected,
   isClaimed,
+  isLocked,
   isIncorrect,
   presence,
-  onClick,
+  onCellClick,
+  onClueClick,
 }) {
+  // Cellule vide (remplissage)
+  if (type === 'empty') {
+    return (
+      <div className="grid-cell-empty bg-gray-300 border border-gray-400" />
+    );
+  }
+
   // Cellule de definition (clue)
   if (type === 'clue') {
+    const isClueForClaimed = isClaimed;
+    
     return (
-      <div 
-        className="grid-cell-clue relative flex flex-col items-center justify-center p-1
-                   bg-gradient-to-br from-gray-200 to-gray-300 border border-gray-400
-                   text-gray-800"
+      <motion.div 
+        onClick={() => onClueClick && onClueClick(row, col, direction, entryId)}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        className={`
+          grid-cell-clue relative flex flex-col items-center justify-center p-0.5
+          border border-gray-400 cursor-pointer transition-colors
+          ${isClueForClaimed 
+            ? 'bg-gradient-to-br from-green-200 to-green-300 border-green-500' 
+            : 'bg-gradient-to-br from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400'
+          }
+        `}
       >
         {/* Texte de la definition */}
-        <span className="text-[9px] leading-tight text-center font-medium uppercase">
+        <span className={`
+          text-[8px] leading-tight text-center font-medium uppercase
+          ${isClueForClaimed ? 'text-green-800' : 'text-gray-700'}
+        `}>
           {clue}
         </span>
         
         {/* Fleche de direction */}
         {direction === 'right' && (
-          <ArrowRight className="absolute bottom-0.5 right-0.5 w-3 h-3 text-gray-600" />
+          <ArrowRight className={`absolute bottom-0 right-0.5 w-3 h-3 ${isClueForClaimed ? 'text-green-600' : 'text-gray-500'}`} />
         )}
         {direction === 'down' && (
-          <ArrowDown className="absolute bottom-0.5 right-0.5 w-3 h-3 text-gray-600" />
+          <ArrowDown className={`absolute bottom-0 right-0.5 w-3 h-3 ${isClueForClaimed ? 'text-green-600' : 'text-gray-500'}`} />
         )}
-        {direction === 'down-right' && (
-          <>
-            <ArrowRight className="absolute bottom-0.5 right-3 w-3 h-3 text-gray-600" />
-            <ArrowDown className="absolute bottom-0.5 right-0.5 w-3 h-3 text-gray-600" />
-          </>
-        )}
-      </div>
+      </motion.div>
     );
   }
   
   // Cellule de lettre
-  const variant = isIncorrect ? 'incorrect' : isSelected ? 'active' : 'idle';
-  
-  // Presence (max 3 autres joueurs)
   const displayedPresence = (presence || []).slice(0, 3);
   
   return (
     <motion.div
       variants={cellVariants}
-      animate={variant}
-      transition={{ duration: isIncorrect ? 0.4 : 0.15 }}
-      onClick={onClick}
+      animate={isIncorrect ? 'incorrect' : isClaimed ? 'claimed' : isSelected ? 'active' : 'idle'}
+      onClick={() => !isLocked && onCellClick && onCellClick(row, col)}
       className={`
-        grid-cell-letter relative flex items-center justify-center cursor-pointer
-        bg-white border border-gray-400
-        ${isSelected ? 'ring-2 ring-zwords-accent bg-blue-50 z-10' : 'hover:bg-gray-50'}
-        ${isClaimed ? 'bg-green-100 border-green-500' : ''}
+        grid-cell-letter relative flex items-center justify-center
+        border border-gray-400 transition-all
+        ${isLocked 
+          ? 'bg-green-100 border-green-400 cursor-default' 
+          : 'bg-white cursor-pointer hover:bg-gray-50'
+        }
+        ${isSelected && !isLocked ? 'ring-2 ring-blue-500 bg-blue-50 z-10' : ''}
+        ${isIncorrect ? 'bg-red-100 border-red-400' : ''}
       `}
     >
       {/* Valeur */}
       <span className={`
-        text-2xl font-bold font-mono uppercase
-        ${value ? 'text-gray-900' : 'text-transparent'}
-        ${isClaimed ? 'text-green-700' : ''}
+        text-xl font-bold font-mono uppercase
+        ${isLocked ? 'text-green-700' : value ? 'text-gray-900' : 'text-transparent'}
       `}>
         {value || '.'}
       </span>
       
+      {/* Indicateur de verrouillage */}
+      {isLocked && (
+        <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-green-500 rounded-full" />
+      )}
+      
       {/* Halos de presence des autres joueurs */}
-      {displayedPresence.map((p, i) => (
+      {!isLocked && displayedPresence.map((p, i) => (
         <motion.div
           key={p.pseudo}
           initial={{ opacity: 0 }}
@@ -108,7 +129,7 @@ export default function GridCell({
       ))}
       
       {/* Badge pseudo du premier joueur present */}
-      {displayedPresence.length > 0 && (
+      {!isLocked && displayedPresence.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
