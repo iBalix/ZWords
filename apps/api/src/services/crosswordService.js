@@ -1,135 +1,158 @@
 /**
- * Service de gestion des grilles de mots croises
+ * Service de gestion des grilles de mots fleches
  * V1: Grilles pre-generees stockees en memoire
+ * 
+ * Format mots fleches:
+ * - Pas de cases noires
+ * - Les definitions sont dans des cases speciales avec fleches
+ * - Les fleches indiquent la direction de la reponse
  */
 
-// Grilles de demonstration pour V1
-// Format: grid[row][col] = { letter, isBlack }
+// Grilles de demonstration pour V1 - Format Mots Fleches
+// Type de cellule: 'letter' (pour ecrire) ou 'clue' (definition avec fleche)
 const DEMO_CROSSWORDS = [
   {
     theme: 'general',
     difficulty: 'easy',
-    rows: 10,
+    rows: 8,
     cols: 10,
-    grid: generateDemoGrid(10, 10),
-    clues: {
-      across: [
-        { number: 1, row: 0, col: 0, length: 5, clue: 'Planete rouge', answer: 'MARS' },
-        { number: 4, row: 2, col: 0, length: 6, clue: 'Capitale de la France', answer: 'PARIS' },
-        { number: 6, row: 4, col: 0, length: 4, clue: 'Animal qui miaule', answer: 'CHAT' },
-        { number: 8, row: 6, col: 2, length: 5, clue: 'Saison chaude', answer: 'ETE' },
-        { number: 9, row: 8, col: 0, length: 7, clue: 'Fruit jaune courbe', answer: 'BANANE' }
-      ],
-      down: [
-        { number: 1, row: 0, col: 0, length: 4, clue: 'Couleur du ciel', answer: 'BLEU' },
-        { number: 2, row: 0, col: 2, length: 6, clue: 'Astre de la nuit', answer: 'LUNE' },
-        { number: 3, row: 0, col: 4, length: 5, clue: 'Liquide vital', answer: 'EAU' },
-        { number: 5, row: 2, col: 6, length: 4, clue: 'Nombre apres neuf', answer: 'DIX' },
-        { number: 7, row: 4, col: 8, length: 3, clue: 'Organe de la vision', answer: 'OEIL' }
-      ]
-    }
-  },
-  {
-    theme: 'cinema',
-    difficulty: 'medium',
-    rows: 12,
-    cols: 12,
-    grid: generateDemoGrid(12, 12),
-    clues: {
-      across: [
-        { number: 1, row: 0, col: 0, length: 5, clue: 'Film de science-fiction avec E.T.', answer: 'ALIEN' },
-        { number: 3, row: 2, col: 1, length: 6, clue: 'Realisateur de Pulp Fiction', answer: 'TARANTINO' },
-        { number: 5, row: 4, col: 0, length: 4, clue: 'Film d\'animation avec un poisson clown', answer: 'NEMO' },
-        { number: 7, row: 6, col: 2, length: 7, clue: 'Saga avec Dark Vador', answer: 'STARWARS' },
-        { number: 9, row: 8, col: 0, length: 5, clue: 'Film avec Leonardo DiCaprio sur un bateau', answer: 'TITANIC' }
-      ],
-      down: [
-        { number: 2, row: 0, col: 2, length: 6, clue: 'Acteur de Matrix', answer: 'KEANU' },
-        { number: 4, row: 2, col: 4, length: 5, clue: 'Film avec un requin', answer: 'JAWS' },
-        { number: 6, row: 4, col: 6, length: 4, clue: 'Studio d\'animation japonais', answer: 'GHIBLI' },
-        { number: 8, row: 6, col: 8, length: 3, clue: 'Actrice de Pretty Woman', answer: 'JULIA' }
-      ]
+    // Grille avec definitions integrees
+    cells: [
+      // Row 0
+      { row: 0, col: 0, type: 'clue', clue: 'Planète rouge', direction: 'right' },
+      { row: 0, col: 1, type: 'letter', entryId: '1-right' },
+      { row: 0, col: 2, type: 'letter', entryId: '1-right' },
+      { row: 0, col: 3, type: 'letter', entryId: '1-right' },
+      { row: 0, col: 4, type: 'letter', entryId: '1-right' },
+      { row: 0, col: 5, type: 'clue', clue: 'Couleur du ciel', direction: 'down' },
+      { row: 0, col: 6, type: 'clue', clue: 'Animal qui miaule', direction: 'right' },
+      { row: 0, col: 7, type: 'letter', entryId: '3-right' },
+      { row: 0, col: 8, type: 'letter', entryId: '3-right' },
+      { row: 0, col: 9, type: 'letter', entryId: '3-right' },
+      // Row 1
+      { row: 1, col: 0, type: 'clue', clue: 'Capitale France', direction: 'down' },
+      { row: 1, col: 1, type: 'letter', entryId: '4-down' },
+      { row: 1, col: 2, type: 'clue', clue: 'Saison chaude', direction: 'right' },
+      { row: 1, col: 3, type: 'letter', entryId: '5-right' },
+      { row: 1, col: 4, type: 'letter', entryId: '5-right' },
+      { row: 1, col: 5, type: 'letter', entryId: '2-down' },
+      { row: 1, col: 6, type: 'clue', clue: 'Fruit jaune', direction: 'down' },
+      { row: 1, col: 7, type: 'letter', entryId: '7-down' },
+      { row: 1, col: 8, type: 'clue', clue: 'Liquide vital', direction: 'right' },
+      { row: 1, col: 9, type: 'letter', entryId: '8-right' },
+      // Row 2
+      { row: 2, col: 0, type: 'letter', entryId: '4-down' },
+      { row: 2, col: 1, type: 'letter', entryId: '4-down' },
+      { row: 2, col: 2, type: 'letter', entryId: '4-down' },
+      { row: 2, col: 3, type: 'clue', clue: 'Nombre 10', direction: 'down' },
+      { row: 2, col: 4, type: 'clue', clue: 'Astre nuit', direction: 'right' },
+      { row: 2, col: 5, type: 'letter', entryId: '2-down,10-right' },
+      { row: 2, col: 6, type: 'letter', entryId: '10-right' },
+      { row: 2, col: 7, type: 'letter', entryId: '7-down,10-right' },
+      { row: 2, col: 8, type: 'letter', entryId: '10-right' },
+      { row: 2, col: 9, type: 'clue', clue: 'Note musique', direction: 'down' },
+      // Row 3
+      { row: 3, col: 0, type: 'clue', clue: 'Roi animaux', direction: 'right' },
+      { row: 3, col: 1, type: 'letter', entryId: '11-right' },
+      { row: 3, col: 2, type: 'letter', entryId: '11-right' },
+      { row: 3, col: 3, type: 'letter', entryId: '9-down,11-right' },
+      { row: 3, col: 4, type: 'letter', entryId: '11-right' },
+      { row: 3, col: 5, type: 'letter', entryId: '2-down' },
+      { row: 3, col: 6, type: 'clue', clue: 'Partie corps', direction: 'right' },
+      { row: 3, col: 7, type: 'letter', entryId: '7-down,12-right' },
+      { row: 3, col: 8, type: 'letter', entryId: '12-right' },
+      { row: 3, col: 9, type: 'letter', entryId: '13-down,12-right' },
+      // Row 4
+      { row: 4, col: 0, type: 'clue', clue: 'Oiseau noir', direction: 'down' },
+      { row: 4, col: 1, type: 'clue', clue: 'Métal jaune', direction: 'right' },
+      { row: 4, col: 2, type: 'letter', entryId: '15-right' },
+      { row: 4, col: 3, type: 'letter', entryId: '9-down,15-right' },
+      { row: 4, col: 4, type: 'clue', clue: 'Véhicule', direction: 'down' },
+      { row: 4, col: 5, type: 'letter', entryId: '2-down' },
+      { row: 4, col: 6, type: 'letter', entryId: '17-down' },
+      { row: 4, col: 7, type: 'letter', entryId: '7-down' },
+      { row: 4, col: 8, type: 'clue', clue: 'Temps passé', direction: 'right' },
+      { row: 4, col: 9, type: 'letter', entryId: '13-down,18-right' },
+      // Row 5
+      { row: 5, col: 0, type: 'letter', entryId: '14-down' },
+      { row: 5, col: 1, type: 'clue', clue: 'Fleur rouge', direction: 'right' },
+      { row: 5, col: 2, type: 'letter', entryId: '19-right' },
+      { row: 5, col: 3, type: 'letter', entryId: '19-right' },
+      { row: 5, col: 4, type: 'letter', entryId: '16-down,19-right' },
+      { row: 5, col: 5, type: 'letter', entryId: '19-right' },
+      { row: 5, col: 6, type: 'letter', entryId: '17-down' },
+      { row: 5, col: 7, type: 'clue', clue: 'Sentiment fort', direction: 'down' },
+      { row: 5, col: 8, type: 'clue', clue: 'Bruit fort', direction: 'right' },
+      { row: 5, col: 9, type: 'letter', entryId: '13-down,20-right' },
+      // Row 6
+      { row: 6, col: 0, type: 'letter', entryId: '14-down' },
+      { row: 6, col: 1, type: 'letter', entryId: '14-down' },
+      { row: 6, col: 2, type: 'clue', clue: 'Contraire oui', direction: 'right' },
+      { row: 6, col: 3, type: 'letter', entryId: '21-right' },
+      { row: 6, col: 4, type: 'letter', entryId: '16-down,21-right' },
+      { row: 6, col: 5, type: 'letter', entryId: '21-right' },
+      { row: 6, col: 6, type: 'letter', entryId: '17-down' },
+      { row: 6, col: 7, type: 'letter', entryId: '22-down' },
+      { row: 6, col: 8, type: 'clue', clue: 'Jour repos', direction: 'right' },
+      { row: 6, col: 9, type: 'letter', entryId: '23-right' },
+      // Row 7
+      { row: 7, col: 0, type: 'letter', entryId: '14-down' },
+      { row: 7, col: 1, type: 'clue', clue: 'Petit insecte', direction: 'right' },
+      { row: 7, col: 2, type: 'letter', entryId: '24-right' },
+      { row: 7, col: 3, type: 'letter', entryId: '24-right' },
+      { row: 7, col: 4, type: 'letter', entryId: '16-down,24-right' },
+      { row: 7, col: 5, type: 'letter', entryId: '24-right' },
+      { row: 7, col: 6, type: 'letter', entryId: '17-down,24-right' },
+      { row: 7, col: 7, type: 'letter', entryId: '22-down,24-right' },
+      { row: 7, col: 8, type: 'letter', entryId: '24-right' },
+      { row: 7, col: 9, type: 'clue', clue: 'FIN', direction: 'none' },
+    ],
+    // Reponses par entryId
+    answers: {
+      '1-right': { answer: 'MARS', cells: [[0,1],[0,2],[0,3],[0,4]] },
+      '2-down': { answer: 'BLEU', cells: [[1,5],[2,5],[3,5],[4,5]] },
+      '3-right': { answer: 'CHAT', cells: [[0,7],[0,8],[0,9]] },
+      '4-down': { answer: 'PARIS', cells: [[1,1],[2,0],[2,1],[2,2]] },
+      '5-right': { answer: 'ETE', cells: [[1,3],[1,4]] },
+      '7-down': { answer: 'BANANE', cells: [[1,7],[2,7],[3,7],[4,7]] },
+      '8-right': { answer: 'EAU', cells: [[1,9]] },
+      '9-down': { answer: 'DIX', cells: [[3,3],[4,3]] },
+      '10-right': { answer: 'LUNE', cells: [[2,5],[2,6],[2,7],[2,8]] },
+      '11-right': { answer: 'LION', cells: [[3,1],[3,2],[3,3],[3,4]] },
+      '12-right': { answer: 'MAIN', cells: [[3,7],[3,8],[3,9]] },
+      '13-down': { answer: 'NOIR', cells: [[3,9],[4,9],[5,9],[6,9]] },
+      '14-down': { answer: 'CORBEAU', cells: [[5,0],[6,0],[6,1],[7,0]] },
+      '15-right': { answer: 'OR', cells: [[4,2],[4,3]] },
+      '16-down': { answer: 'AUTO', cells: [[5,4],[6,4],[7,4]] },
+      '17-down': { answer: 'ROUTE', cells: [[4,6],[5,6],[6,6],[7,6]] },
+      '18-right': { answer: 'HIER', cells: [[4,9]] },
+      '19-right': { answer: 'ROSE', cells: [[5,2],[5,3],[5,4],[5,5]] },
+      '20-right': { answer: 'CRI', cells: [[5,9]] },
+      '21-right': { answer: 'NON', cells: [[6,3],[6,4],[6,5]] },
+      '22-down': { answer: 'AMOUR', cells: [[6,7],[7,7]] },
+      '23-right': { answer: 'DIMANCHE', cells: [[6,9]] },
+      '24-right': { answer: 'FOURMI', cells: [[7,2],[7,3],[7,4],[7,5],[7,6],[7,7],[7,8]] },
     }
   }
 ];
 
 /**
- * Genere une grille de demonstration avec des cases noires aleatoires
- */
-function generateDemoGrid(rows, cols) {
-  const grid = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) {
-      // ~20% de cases noires de maniere aleatoire mais reproductible
-      const isBlack = ((r * 7 + c * 11) % 5 === 0);
-      row.push({
-        isBlack,
-        number: null // Sera rempli par buildGridWithNumbers
-      });
-    }
-    grid.push(row);
-  }
-  return grid;
-}
-
-/**
  * Construit les donnees de grille a envoyer au client (sans reponses)
  */
 function buildClientGrid(crossword) {
-  const { rows, cols, clues } = crossword;
-  const cells = [];
-  
-  // Creer matrice de cellules
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const isBlack = crossword.grid[r][c].isBlack;
-      
-      // Trouver si cette cellule a un numero
-      let number = null;
-      for (const clue of [...clues.across, ...clues.down]) {
-        if (clue.row === r && clue.col === c) {
-          number = clue.number;
-          break;
-        }
-      }
-      
-      cells.push({
-        row: r,
-        col: c,
-        isBlack,
-        number,
-        value: '' // Vide au depart
-      });
-    }
-  }
+  const { rows, cols, cells } = crossword;
   
   return {
     rows,
     cols,
-    cells
-  };
-}
-
-/**
- * Construit les indices a envoyer au client
- */
-function buildClientClues(crossword) {
-  return {
-    across: crossword.clues.across.map(c => ({
-      number: c.number,
-      row: c.row,
-      col: c.col,
-      length: c.length,
-      clue: c.clue
-      // PAS de answer!
-    })),
-    down: crossword.clues.down.map(c => ({
-      number: c.number,
-      row: c.row,
-      col: c.col,
-      length: c.length,
-      clue: c.clue
+    cells: cells.map(cell => ({
+      row: cell.row,
+      col: cell.col,
+      type: cell.type,
+      clue: cell.clue || null,
+      direction: cell.direction || null,
+      entryIds: cell.entryId ? cell.entryId.split(',') : [],
+      value: '' // Vide au depart pour les lettres
     }))
   };
 }
@@ -140,23 +163,11 @@ function buildClientClues(crossword) {
 function buildAnswersMap(crossword) {
   const answers = {};
   
-  for (const clue of crossword.clues.across) {
-    answers[`${clue.number}-across`] = {
-      answer: clue.answer,
-      row: clue.row,
-      col: clue.col,
-      length: clue.length,
-      direction: 'across'
-    };
-  }
-  
-  for (const clue of crossword.clues.down) {
-    answers[`${clue.number}-down`] = {
-      answer: clue.answer,
-      row: clue.row,
-      col: clue.col,
-      length: clue.length,
-      direction: 'down'
+  for (const [entryId, data] of Object.entries(crossword.answers)) {
+    answers[entryId] = {
+      answer: data.answer,
+      cells: data.cells, // [[row, col], ...]
+      length: data.answer.length
     };
   }
   
@@ -167,62 +178,43 @@ function buildAnswersMap(crossword) {
  * Genere une nouvelle grille pour une partie
  * @param {string} theme - Theme souhaite
  * @param {string} difficulty - Niveau de difficulte
- * @returns {Object} { gridData, clues, answers }
+ * @returns {Object} { gridData, answers }
  */
 export function generateCrossword(theme = 'general', difficulty = 'easy') {
-  // V1: Selectionner une grille de demo aleatoire
-  const matching = DEMO_CROSSWORDS.filter(cw => 
-    cw.theme === theme || cw.difficulty === difficulty
-  );
-  
-  const crossword = matching.length > 0 
-    ? matching[Math.floor(Math.random() * matching.length)]
-    : DEMO_CROSSWORDS[0];
+  // V1: Utiliser la grille de demo
+  const crossword = DEMO_CROSSWORDS[0];
   
   return {
     gridData: buildClientGrid(crossword),
-    clues: buildClientClues(crossword),
+    clues: {}, // Plus besoin de clues separees, elles sont dans la grille
     answers: buildAnswersMap(crossword)
   };
 }
 
 /**
- * Trouve quelles entries passent par une cellule
- * @param {Object} clues - Les indices
+ * Trouve quelles entries contiennent une cellule
+ * @param {Array} cells - Les cellules de la grille
  * @param {number} row
  * @param {number} col
- * @returns {Array<string>} Liste d'entry IDs (ex: ["1-across", "2-down"])
+ * @returns {Array<string>} Liste d'entry IDs
  */
-export function findEntriesAtCell(clues, row, col) {
-  const entries = [];
+export function findEntriesAtCell(cells, row, col) {
+  const cell = cells.find(c => c.row === row && c.col === col);
+  if (!cell || cell.type !== 'letter') return [];
   
-  for (const clue of clues.across) {
-    if (row === clue.row && col >= clue.col && col < clue.col + clue.length) {
-      entries.push(`${clue.number}-across`);
-    }
-  }
-  
-  for (const clue of clues.down) {
-    if (col === clue.col && row >= clue.row && row < clue.row + clue.length) {
-      entries.push(`${clue.number}-down`);
-    }
-  }
-  
-  return entries;
+  return cell.entryIds || [];
 }
 
 /**
  * Verifie si une entry est complete (toutes les cellules remplies)
  * @param {Object} gridCells - Map des cellules { "row-col": value }
- * @param {Object} entry - Definition de l'entry
+ * @param {Object} entry - Definition de l'entry { answer, cells }
  * @returns {{ complete: boolean, word: string }}
  */
 export function checkEntryComplete(gridCells, entry) {
   let word = '';
   
-  for (let i = 0; i < entry.length; i++) {
-    const r = entry.direction === 'across' ? entry.row : entry.row + i;
-    const c = entry.direction === 'across' ? entry.col + i : entry.col;
+  for (const [r, c] of entry.cells) {
     const key = `${r}-${c}`;
     const value = gridCells[key];
     

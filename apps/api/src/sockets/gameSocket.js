@@ -188,7 +188,7 @@ export function initializeSocketHandlers(io) {
         const crossword = await gameService.getCurrentCrossword(game.id);
         if (!crossword) return;
         
-        // Traiter la saisie
+        // Traiter la saisie (utilise gridData pour trouver les entryIds)
         const result = await processCellInput(
           crossword.id,
           game.id,
@@ -197,7 +197,7 @@ export function initializeSocketHandlers(io) {
           normalizedValue,
           pseudo,
           color,
-          crossword.clues
+          crossword.grid_data
         );
         
         // Broadcast la mise a jour de cellule

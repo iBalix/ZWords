@@ -1,5 +1,5 @@
 /**
- * Composant grille de mots croises
+ * Composant grille de mots fleches
  */
 
 import { motion } from 'framer-motion';
@@ -20,10 +20,10 @@ export default function CrosswordGrid({
   
   const { rows, cols, cells: gridCells } = gridData;
   
-  // Construire la map des claims par entry
-  const claimsMap = {};
+  // Construire la map des claims par entryId
+  const claimedEntries = new Set();
   for (const claim of claims) {
-    claimsMap[claim.entryId] = claim;
+    claimedEntries.add(claim.entryId);
   }
   
   // Construire la map des presences par cellule (autres joueurs)
@@ -44,21 +44,27 @@ export default function CrosswordGrid({
     incorrectMap[`${cell.row}-${cell.col}`] = true;
   }
   
-  // Trouver les cellules du mot actif
-  const activeWordCells = new Set();
-  // TODO: calculer les cellules du mot actif basé sur selectedCell et direction
+  // Verifier si une cellule fait partie d'un mot claim
+  const isCellClaimed = (cell) => {
+    if (cell.type !== 'letter') return false;
+    const entryIds = cell.entryIds || [];
+    return entryIds.some(id => claimedEntries.has(id));
+  };
+  
+  // Taille des cellules
+  const cellSize = 50;
   
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="glass rounded-xl p-4"
+      className="bg-white rounded-lg shadow-xl p-2 overflow-auto"
     >
       <div 
-        className="grid gap-0.5 mx-auto"
+        className="grid gap-0"
         style={{
-          gridTemplateColumns: `repeat(${cols}, 40px)`,
-          gridTemplateRows: `repeat(${rows}, 40px)`,
+          gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
+          gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
         }}
       >
         {gridCells.map((cell) => {
@@ -67,24 +73,22 @@ export default function CrosswordGrid({
           const isSelected = selectedCell?.row === cell.row && selectedCell?.col === cell.col;
           const cellPresence = presenceByCell[key] || [];
           const isIncorrect = incorrectMap[key];
-          
-          // Verifier si la cellule fait partie d'un mot claim
-          const isClaimed = false; // TODO: calculer
+          const isClaimed = isCellClaimed(cell);
           
           return (
             <GridCell
               key={key}
               row={cell.row}
               col={cell.col}
+              type={cell.type}
+              clue={cell.clue}
+              direction={cell.direction}
               value={value}
-              number={cell.number}
-              isBlack={cell.isBlack}
-              isSelected={isSelected}
+              isSelected={isSelected && cell.type === 'letter'}
               isClaimed={isClaimed}
               isIncorrect={isIncorrect}
               presence={cellPresence}
-              direction={isSelected ? direction : null}
-              onClick={() => !cell.isBlack && onCellClick(cell.row, cell.col)}
+              onClick={() => cell.type === 'letter' && onCellClick(cell.row, cell.col)}
             />
           );
         })}

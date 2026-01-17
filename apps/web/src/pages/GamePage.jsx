@@ -1,5 +1,5 @@
 /**
- * Page de jeu - Grille de mots croises
+ * Page de jeu - Grille de mots fleches
  */
 
 import { useEffect, useCallback, useState } from 'react';
@@ -13,7 +13,6 @@ import { useSocket } from '../hooks/useSocket';
 import { useGameState } from '../hooks/useGameState';
 
 import CrosswordGrid from '../components/Grid/CrosswordGrid';
-import CluePanel from '../components/Grid/CluePanel';
 import Scoreboard from '../components/Scoreboard/Scoreboard';
 import ChatPanel from '../components/Chat/ChatPanel';
 import HistoryPanel from '../components/History/HistoryPanel';
@@ -127,6 +126,26 @@ export default function GamePage() {
     handleSocketEvent
   );
   
+  // Trouver la prochaine cellule de type "letter" dans une direction
+  const findNextLetterCell = useCallback((fromRow, fromCol, rowDelta, colDelta) => {
+    if (!crossword) return null;
+    
+    const { rows, cols, cells: gridCells } = crossword.gridData;
+    let r = fromRow + rowDelta;
+    let c = fromCol + colDelta;
+    
+    while (r >= 0 && r < rows && c >= 0 && c < cols) {
+      const cell = gridCells.find(cell => cell.row === r && cell.col === c);
+      if (cell && cell.type === 'letter') {
+        return { row: r, col: c };
+      }
+      r += rowDelta;
+      c += colDelta;
+    }
+    
+    return null;
+  }, [crossword]);
+  
   // Gerer la saisie clavier
   const handleKeyDown = useCallback((e) => {
     if (!selectedCell || !crossword) return;
@@ -134,9 +153,9 @@ export default function GamePage() {
     const { row, col } = selectedCell;
     const { rows, cols, cells: gridCells } = crossword.gridData;
     
-    // Trouver la cellule
+    // Trouver la cellule actuelle
     const cell = gridCells.find(c => c.row === row && c.col === col);
-    if (!cell || cell.isBlack) return;
+    if (!cell || cell.type !== 'letter') return;
     
     // Lettres
     if (/^[a-zA-Z]$/.test(e.key)) {
@@ -144,19 +163,13 @@ export default function GamePage() {
       sendCellInput(row, col, e.key.toUpperCase());
       
       // Avancer dans la direction
-      let nextRow = row;
-      let nextCol = col;
-      if (direction === 'across') {
-        nextCol = Math.min(col + 1, cols - 1);
-      } else {
-        nextRow = Math.min(row + 1, rows - 1);
-      }
+      const rowDelta = direction === 'down' ? 1 : 0;
+      const colDelta = direction === 'across' ? 1 : 0;
+      const nextCell = findNextLetterCell(row, col, rowDelta, colDelta);
       
-      // Verifier que la cellule suivante n'est pas noire
-      const nextCell = gridCells.find(c => c.row === nextRow && c.col === nextCol);
-      if (nextCell && !nextCell.isBlack) {
-        selectCell(nextRow, nextCol);
-        sendCursorUpdate(nextRow, nextCol, direction, null);
+      if (nextCell) {
+        selectCell(nextCell.row, nextCell.col);
+        sendCursorUpdate(nextCell.row, nextCell.col, direction, null);
       }
     }
     
@@ -166,18 +179,13 @@ export default function GamePage() {
       sendCellInput(row, col, '');
       
       // Reculer dans la direction
-      let prevRow = row;
-      let prevCol = col;
-      if (direction === 'across') {
-        prevCol = Math.max(col - 1, 0);
-      } else {
-        prevRow = Math.max(row - 1, 0);
-      }
+      const rowDelta = direction === 'down' ? -1 : 0;
+      const colDelta = direction === 'across' ? -1 : 0;
+      const prevCell = findNextLetterCell(row, col, rowDelta, colDelta);
       
-      const prevCell = gridCells.find(c => c.row === prevRow && c.col === prevCol);
-      if (prevCell && !prevCell.isBlack) {
-        selectCell(prevRow, prevCol);
-        sendCursorUpdate(prevRow, prevCol, direction, null);
+      if (prevCell) {
+        selectCell(prevCell.row, prevCell.col);
+        sendCursorUpdate(prevCell.row, prevCell.col, direction, null);
       }
     }
     
@@ -192,23 +200,22 @@ export default function GamePage() {
     // Fleches
     else if (e.key.startsWith('Arrow')) {
       e.preventDefault();
-      let nextRow = row;
-      let nextCol = col;
       
+      let rowDelta = 0, colDelta = 0;
       switch (e.key) {
-        case 'ArrowUp': nextRow = Math.max(row - 1, 0); break;
-        case 'ArrowDown': nextRow = Math.min(row + 1, rows - 1); break;
-        case 'ArrowLeft': nextCol = Math.max(col - 1, 0); break;
-        case 'ArrowRight': nextCol = Math.min(col + 1, cols - 1); break;
+        case 'ArrowUp': rowDelta = -1; break;
+        case 'ArrowDown': rowDelta = 1; break;
+        case 'ArrowLeft': colDelta = -1; break;
+        case 'ArrowRight': colDelta = 1; break;
       }
       
-      const nextCell = gridCells.find(c => c.row === nextRow && c.col === nextCol);
-      if (nextCell && !nextCell.isBlack) {
-        selectCell(nextRow, nextCol);
-        sendCursorUpdate(nextRow, nextCol, direction, null);
+      const nextCell = findNextLetterCell(row, col, rowDelta, colDelta);
+      if (nextCell) {
+        selectCell(nextCell.row, nextCell.col);
+        sendCursorUpdate(nextCell.row, nextCell.col, direction, null);
       }
     }
-  }, [selectedCell, crossword, direction, sendCellInput, sendCursorUpdate, selectCell, setDirection]);
+  }, [selectedCell, crossword, direction, sendCellInput, sendCursorUpdate, selectCell, setDirection, findNextLetterCell]);
   
   // Ajouter/retirer le listener clavier
   useEffect(() => {
@@ -279,25 +286,8 @@ export default function GamePage() {
         </div>
       </header>
       
-      {/* Contenu principal */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Colonne gauche - Indices */}
-        <div className="lg:col-span-1 space-y-4">
-          {crossword && (
-            <CluePanel
-              clues={crossword.clues}
-              claims={claims}
-              selectedCell={selectedCell}
-              direction={direction}
-              onSelectClue={(clue, dir) => {
-                selectCell(clue.row, clue.col);
-                setDirection(dir);
-                sendCursorUpdate(clue.row, clue.col, dir, `${clue.number}-${dir}`);
-              }}
-            />
-          )}
-        </div>
-        
+      {/* Contenu principal - 2 colonnes: Grille + Panel droit */}
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Colonne centrale - Grille */}
         <div className="lg:col-span-2 flex flex-col items-center">
           {!isLoaded ? (
@@ -317,6 +307,12 @@ export default function GamePage() {
                 incorrectCells={incorrectCells}
                 onCellClick={handleCellClick}
               />
+              
+              {/* Indication direction */}
+              <div className="mt-4 text-gray-400 text-sm">
+                Direction: <span className="text-white font-medium">{direction === 'across' ? '→ Horizontal' : '↓ Vertical'}</span>
+                <span className="ml-2 text-gray-500">(Espace pour changer)</span>
+              </div>
               
               {/* Boutons owner */}
               {isOwner && gridCompleted && (

@@ -4,13 +4,13 @@
 
 import * as gameService from '../services/gameService.js';
 import * as messageService from '../services/messageService.js';
-import { findEntriesAtCell, checkEntryComplete, isCorrectAnswer } from '../services/crosswordService.js';
+import { checkEntryComplete, isCorrectAnswer } from '../services/crosswordService.js';
 
 /**
  * Traite une saisie de cellule et verifie les entries impactees
  * @returns {{ cellUpdate, entries: Array<{ entryId, status, word, pseudo, color }> }}
  */
-export async function processCellInput(crosswordId, gameId, row, col, value, pseudo, color, clues) {
+export async function processCellInput(crosswordId, gameId, row, col, value, pseudo, color, gridData) {
   const result = {
     cellUpdate: { row, col, value, pseudo },
     entries: [],
@@ -26,8 +26,13 @@ export async function processCellInput(crosswordId, gameId, row, col, value, pse
   // Mettre a jour avec la nouvelle valeur
   gridCells[`${row}-${col}`] = value.toUpperCase();
   
-  // Trouver les entries qui passent par cette cellule
-  const entryIds = findEntriesAtCell(clues, row, col);
+  // Trouver les entries qui contiennent cette cellule
+  const cell = gridData.cells.find(c => c.row === row && c.col === col);
+  if (!cell || cell.type !== 'letter') {
+    return result;
+  }
+  
+  const entryIds = cell.entryIds || [];
   
   // Recuperer les reponses (cote serveur uniquement)
   const answers = await gameService.getAnswers(crosswordId);
@@ -44,7 +49,6 @@ export async function processCellInput(crosswordId, gameId, row, col, value, pse
       const alreadyClaimed = await gameService.isEntryClaimed(crosswordId, entryId);
       
       if (alreadyClaimed) {
-        // Ne rien faire, deja trouve
         continue;
       }
       
@@ -66,25 +70,18 @@ export async function processCellInput(crosswordId, gameId, row, col, value, pse
           status: 'claimed',
           word,
           pseudo,
-          color
+          color,
+          cells: entry.cells
         });
       } else {
         // Log l'echec
         await messageService.logFail(gameId, pseudo, color, entryId, word);
         
-        // Recuperer les cellules de l'entry pour l'animation
-        const entryCells = [];
-        for (let i = 0; i < entry.length; i++) {
-          const r = entry.direction === 'across' ? entry.row : entry.row + i;
-          const c = entry.direction === 'across' ? entry.col + i : entry.col;
-          entryCells.push({ row: r, col: c });
-        }
-        
         result.entries.push({
           entryId,
           status: 'incorrect',
           word,
-          cells: entryCells
+          cells: entry.cells.map(([r, c]) => ({ row: r, col: c }))
         });
       }
     }
