@@ -148,6 +148,12 @@ export default function GamePage() {
   
   // Gerer la saisie clavier
   const handleKeyDown = useCallback((e) => {
+    // Ne pas capturer si on est dans un input/textarea
+    const activeElement = document.activeElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+      return;
+    }
+    
     if (!selectedCell || !crossword) return;
     
     const { row, col } = selectedCell;

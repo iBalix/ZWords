@@ -288,13 +288,15 @@ export async function getAnswers(crosswordId) {
 export async function isGridComplete(crosswordId) {
   const { data: crossword } = await supabase
     .from('zwords_crosswords')
-    .select('clues')
+    .select('answers_encrypted')
     .eq('id', crosswordId)
     .single();
   
   if (!crossword) return false;
   
-  const totalEntries = crossword.clues.across.length + crossword.clues.down.length;
+  // Compter le nombre d'entries dans answers_encrypted
+  const answers = crossword.answers_encrypted || {};
+  const totalEntries = Object.keys(answers).length;
   
   const { count } = await supabase
     .from('zwords_entry_claims')
