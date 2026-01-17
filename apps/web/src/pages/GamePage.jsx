@@ -186,9 +186,12 @@ export default function GamePage() {
     if (/^[a-zA-Z]$/.test(e.key)) {
       e.preventDefault();
       
-      // Ne pas permettre l'ecriture sur cellule verrouillee
       if (!cellLocked) {
-        sendCellInput(row, col, e.key.toUpperCase());
+        const upperKey = e.key.toUpperCase();
+        // Mise a jour locale IMMEDIATE pour reactivite
+        updateCell(row, col, upperKey, pseudo);
+        // Envoi au serveur en arriere-plan
+        sendCellInput(row, col, upperKey);
       }
       
       // Avancer dans la direction (sauter les cellules verrouilees)
@@ -206,8 +209,10 @@ export default function GamePage() {
     else if (e.key === 'Backspace') {
       e.preventDefault();
       
-      // Ne pas permettre l'effacement sur cellule verrouillee
       if (!cellLocked) {
+        // Mise a jour locale IMMEDIATE pour reactivite
+        updateCell(row, col, '', pseudo);
+        // Envoi au serveur en arriere-plan
         sendCellInput(row, col, '');
       }
       
@@ -249,7 +254,7 @@ export default function GamePage() {
         sendCursorUpdate(nextCell.row, nextCell.col, direction, null);
       }
     }
-  }, [selectedCell, crossword, direction, sendCellInput, sendCursorUpdate, selectCell, setDirection, findNextLetterCell, isCellLocked]);
+  }, [selectedCell, crossword, direction, sendCellInput, sendCursorUpdate, selectCell, setDirection, findNextLetterCell, isCellLocked, updateCell, pseudo]);
   
   // Ajouter/retirer le listener clavier
   useEffect(() => {
@@ -265,37 +270,28 @@ export default function GamePage() {
   
   // Gerer le clic sur une definition - selectionner la 1ere cellule du mot
   const handleClueClick = useCallback((row, col, clueDirection, entryId) => {
-    console.log('Clue clicked:', { row, col, clueDirection, entryId });
-    
-    if (!crossword) {
-      console.log('No crossword data');
-      return;
-    }
+    if (!crossword) return;
     
     // Definir la direction en fonction de la fleche de la definition
     // 'right' = fleche vers la droite = ecriture horizontale = 'across'
     // 'down' = fleche vers le bas = ecriture verticale = 'down'
     const newDir = clueDirection === 'right' ? 'across' : 'down';
-    console.log('Setting direction to:', newDir);
     setDirection(newDir);
     
     // Trouver la premiere cellule du mot (juste apres la definition)
     const targetRow = clueDirection === 'right' ? row : row + 1;
     const targetCol = clueDirection === 'right' ? col + 1 : col;
     
-    console.log('Target cell:', { targetRow, targetCol });
-    
     // Verifier que c'est bien une cellule lettre
     const { cells: gridCells } = crossword.gridData;
     const targetCell = gridCells.find(c => c.row === targetRow && c.col === targetCol);
     
-    console.log('Found target cell:', targetCell);
-    
     if (targetCell && targetCell.type === 'letter') {
-      selectCell(targetRow, targetCol);
+      // Utiliser setSelectedCell directement pour eviter le toggle
+      gameState.setSelectedCell({ row: targetRow, col: targetCol });
       sendCursorUpdate(targetRow, targetCol, newDir, entryId);
     }
-  }, [crossword, setDirection, selectCell, sendCursorUpdate]);
+  }, [crossword, setDirection, gameState, sendCursorUpdate]);
   
   // Verifier si on est l'owner
   const isOwner = game?.ownerPseudo === pseudo;

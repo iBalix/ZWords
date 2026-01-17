@@ -34,6 +34,7 @@ export default function GridCell({
   isLocked,
   isIncorrect,
   presence,
+  claimColors, // Array of colors for claimed entries on this cell
   onCellClick,
   onClueClick,
 }) {
@@ -46,7 +47,7 @@ export default function GridCell({
 
   // Cellule de definition (clue)
   if (type === 'clue') {
-    const isClueForClaimed = isClaimed;
+    const clueColor = claimColors?.[0]; // Couleur du joueur qui a trouve ce mot
     
     return (
       <motion.div 
@@ -55,27 +56,37 @@ export default function GridCell({
         whileTap={{ scale: 0.98 }}
         className={`
           grid-cell-clue relative flex flex-col items-center justify-center p-0.5
-          border border-gray-400 cursor-pointer transition-colors
-          ${isClueForClaimed 
-            ? 'bg-gradient-to-br from-green-200 to-green-300 border-green-500' 
-            : 'bg-gradient-to-br from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400'
+          border cursor-pointer transition-colors
+          ${isClaimed 
+            ? 'border-2' 
+            : 'border-gray-400 bg-gradient-to-br from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400'
           }
         `}
+        style={isClaimed && clueColor ? {
+          background: `linear-gradient(135deg, ${clueColor}40 0%, ${clueColor}60 100%)`,
+          borderColor: clueColor,
+        } : {}}
       >
         {/* Texte de la definition */}
         <span className={`
           text-[8px] leading-tight text-center font-medium uppercase
-          ${isClueForClaimed ? 'text-green-800' : 'text-gray-700'}
+          ${isClaimed ? 'text-gray-900' : 'text-gray-700'}
         `}>
           {clue}
         </span>
         
         {/* Fleche de direction */}
         {direction === 'right' && (
-          <ArrowRight className={`absolute bottom-0 right-0.5 w-3 h-3 ${isClueForClaimed ? 'text-green-600' : 'text-gray-500'}`} />
+          <ArrowRight 
+            className="absolute bottom-0 right-0.5 w-3 h-3" 
+            style={{ color: isClaimed && clueColor ? clueColor : '#6b7280' }}
+          />
         )}
         {direction === 'down' && (
-          <ArrowDown className={`absolute bottom-0 right-0.5 w-3 h-3 ${isClueForClaimed ? 'text-green-600' : 'text-gray-500'}`} />
+          <ArrowDown 
+            className="absolute bottom-0 right-0.5 w-3 h-3"
+            style={{ color: isClaimed && clueColor ? clueColor : '#6b7280' }}
+          />
         )}
       </motion.div>
     );
@@ -84,6 +95,33 @@ export default function GridCell({
   // Cellule de lettre
   const displayedPresence = (presence || []).slice(0, 3);
   
+  // Determiner le style de fond en fonction des couleurs claim
+  const getBackgroundStyle = () => {
+    if (!isLocked || !claimColors || claimColors.length === 0) {
+      return {};
+    }
+    
+    if (claimColors.length === 1) {
+      // Une seule couleur
+      return {
+        background: `${claimColors[0]}30`,
+        borderColor: claimColors[0],
+      };
+    } else {
+      // Deux couleurs ou plus - biseau diagonal
+      const color1 = claimColors[0];
+      const color2 = claimColors[1] || claimColors[0];
+      return {
+        background: `linear-gradient(135deg, ${color1}40 0%, ${color1}40 50%, ${color2}40 50%, ${color2}40 100%)`,
+        borderColor: color1,
+        borderRightColor: color2,
+        borderBottomColor: color2,
+      };
+    }
+  };
+  
+  const bgStyle = getBackgroundStyle();
+  
   return (
     <motion.div
       variants={cellVariants}
@@ -91,27 +129,23 @@ export default function GridCell({
       onClick={() => !isLocked && onCellClick && onCellClick(row, col)}
       className={`
         grid-cell-letter relative flex items-center justify-center
-        border border-gray-400 transition-all
+        border transition-all
         ${isLocked 
-          ? 'bg-green-100 border-green-400 cursor-default' 
-          : 'bg-white cursor-pointer hover:bg-gray-50'
+          ? 'cursor-default border-2' 
+          : 'bg-white cursor-pointer hover:bg-gray-50 border-gray-400'
         }
         ${isSelected && !isLocked ? 'ring-2 ring-blue-500 bg-blue-50 z-10' : ''}
         ${isIncorrect ? 'bg-red-100 border-red-400' : ''}
       `}
+      style={isLocked ? bgStyle : {}}
     >
       {/* Valeur */}
       <span className={`
         text-xl font-bold font-mono uppercase
-        ${isLocked ? 'text-green-700' : value ? 'text-gray-900' : 'text-transparent'}
+        ${isLocked ? 'text-gray-800' : value ? 'text-gray-900' : 'text-transparent'}
       `}>
         {value || '.'}
       </span>
-      
-      {/* Indicateur de verrouillage */}
-      {isLocked && (
-        <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-green-500 rounded-full" />
-      )}
       
       {/* Halos de presence des autres joueurs */}
       {!isLocked && displayedPresence.map((p, i) => (

@@ -22,41 +22,60 @@ export default function CrosswordGrid({
   
   const { rows, cols, cells: gridCells } = gridData;
   
-  // Construire la map des claims par entryId
-  const claimedEntries = useMemo(() => {
-    const set = new Set();
+  // Construire la map des claims par entryId avec couleur
+  const claimsByEntryId = useMemo(() => {
+    const map = {};
     for (const claim of claims) {
-      set.add(claim.entryId);
+      map[claim.entryId] = {
+        pseudo: claim.pseudo,
+        color: claim.color
+      };
     }
-    return set;
+    return map;
   }, [claims]);
   
-  // Construire la map des cellules verrouillees (font partie d'un mot claim)
-  const lockedCells = useMemo(() => {
-    const locked = new Set();
+  // Set des entryIds claim
+  const claimedEntries = useMemo(() => {
+    return new Set(claims.map(c => c.entryId));
+  }, [claims]);
+  
+  // Construire la map des cellules verrouillees et leurs couleurs
+  const lockedCellsData = useMemo(() => {
+    const data = {};
     for (const cell of gridCells) {
       if (cell.type === 'letter') {
         const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',').filter(Boolean);
-        // Si AU MOINS UNE entry de cette cellule est claim, elle est verrouillee
-        const anyClaimed = entryIds.some(id => claimedEntries.has(id));
-        if (anyClaimed) {
-          locked.add(`${cell.row}-${cell.col}`);
+        const colors = [];
+        let anyLocked = false;
+        
+        for (const id of entryIds) {
+          if (claimsByEntryId[id]) {
+            anyLocked = true;
+            const color = claimsByEntryId[id].color;
+            if (color && !colors.includes(color)) {
+              colors.push(color);
+            }
+          }
+        }
+        
+        if (anyLocked) {
+          data[`${cell.row}-${cell.col}`] = colors;
         }
       }
     }
-    return locked;
-  }, [gridCells, claimedEntries]);
+    return data;
+  }, [gridCells, claimsByEntryId]);
   
   // Construire la map des presences par cellule (autres joueurs)
   const presenceByCell = useMemo(() => {
     const map = {};
-    for (const [playerPseudo, data] of Object.entries(presence)) {
-      if (playerPseudo !== myPseudo && data.row !== null && data.col !== null) {
-        const key = `${data.row}-${data.col}`;
+    for (const [playerPseudo, pData] of Object.entries(presence)) {
+      if (playerPseudo !== myPseudo && pData.row !== null && pData.col !== null) {
+        const key = `${pData.row}-${pData.col}`;
         if (!map[key]) {
           map[key] = [];
         }
-        map[key].push(data);
+        map[key].push(pData);
       }
     }
     return map;
@@ -74,14 +93,18 @@ export default function CrosswordGrid({
   // Verifier si une cellule fait partie d'un mot claim
   const isCellClaimed = (cell) => {
     if (cell.type !== 'letter') return false;
-    const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',');
+    const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',').filter(Boolean);
     return entryIds.some(id => claimedEntries.has(id));
   };
   
-  // Verifier si une clue est pour un mot claim
-  const isClueClaimed = (cell) => {
-    if (cell.type !== 'clue') return false;
-    return claimedEntries.has(cell.entryId);
+  // Verifier si une clue est pour un mot claim et obtenir sa couleur
+  const getClueClaimData = (cell) => {
+    if (cell.type !== 'clue') return { isClaimed: false, colors: [] };
+    const claim = claimsByEntryId[cell.entryId];
+    if (claim) {
+      return { isClaimed: true, colors: [claim.color] };
+    }
+    return { isClaimed: false, colors: [] };
   };
   
   // Taille des cellules
@@ -106,8 +129,20 @@ export default function CrosswordGrid({
           const isSelected = selectedCell?.row === cell.row && selectedCell?.col === cell.col;
           const cellPresence = presenceByCell[key] || [];
           const isIncorrect = incorrectMap[key];
-          const isClaimed = cell.type === 'letter' ? isCellClaimed(cell) : isClueClaimed(cell);
-          const isLocked = lockedCells.has(key);
+          
+          let isClaimed = false;
+          let claimColors = [];
+          let isLocked = false;
+          
+          if (cell.type === 'letter') {
+            isClaimed = isCellClaimed(cell);
+            claimColors = lockedCellsData[key] || [];
+            isLocked = claimColors.length > 0;
+          } else if (cell.type === 'clue') {
+            const clueData = getClueClaimData(cell);
+            isClaimed = clueData.isClaimed;
+            claimColors = clueData.colors;
+          }
           
           return (
             <GridCell
@@ -124,6 +159,7 @@ export default function CrosswordGrid({
               isLocked={isLocked}
               isIncorrect={isIncorrect}
               presence={cellPresence}
+              claimColors={claimColors}
               onCellClick={onCellClick}
               onClueClick={onClueClick}
             />

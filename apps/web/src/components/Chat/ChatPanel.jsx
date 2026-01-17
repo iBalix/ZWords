@@ -54,7 +54,7 @@ export default function ChatPanel({
   };
   
   return (
-    <div className="glass rounded-xl flex flex-col h-full min-h-[300px]">
+    <div className="glass rounded-xl flex flex-col max-h-[400px]">
       {/* Tabs */}
       <div className="flex border-b border-gray-700">
         <button
