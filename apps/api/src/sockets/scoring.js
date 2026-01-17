@@ -27,12 +27,20 @@ export async function processCellInput(crosswordId, gameId, row, col, value, pse
   gridCells[`${row}-${col}`] = value.toUpperCase();
   
   // Trouver les entries qui contiennent cette cellule
-  const cell = gridData.cells.find(c => c.row === row && c.col === col);
+  // gridData.cells peut etre un tableau ou un objet selon la source
+  const cellsArray = Array.isArray(gridData?.cells) ? gridData.cells : [];
+  const cell = cellsArray.find(c => c.row === row && c.col === col);
   if (!cell || cell.type !== 'letter') {
     return result;
   }
   
-  const entryIds = cell.entryIds || [];
+  // entryIds peut etre un tableau ou une string avec virgules
+  let entryIds = [];
+  if (Array.isArray(cell.entryIds)) {
+    entryIds = cell.entryIds;
+  } else if (typeof cell.entryId === 'string') {
+    entryIds = cell.entryId.split(',');
+  }
   
   // Recuperer les reponses (cote serveur uniquement)
   const answers = await gameService.getAnswers(crosswordId);
