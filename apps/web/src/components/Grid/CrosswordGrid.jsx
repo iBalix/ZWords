@@ -35,11 +35,11 @@ export default function CrosswordGrid({
   const lockedCells = useMemo(() => {
     const locked = new Set();
     for (const cell of gridCells) {
-      if (cell.type === 'letter' && cell.entryIds) {
-        const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',');
-        // Si toutes les entries de cette cellule sont claim, elle est verrouillee
-        const allClaimed = entryIds.length > 0 && entryIds.every(id => claimedEntries.has(id));
-        if (allClaimed) {
+      if (cell.type === 'letter') {
+        const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',').filter(Boolean);
+        // Si AU MOINS UNE entry de cette cellule est claim, elle est verrouillee
+        const anyClaimed = entryIds.some(id => claimedEntries.has(id));
+        if (anyClaimed) {
           locked.add(`${cell.row}-${cell.col}`);
         }
       }

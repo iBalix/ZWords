@@ -129,11 +129,11 @@ export default function GamePage() {
   // Construire le set des entries claim
   const claimedEntries = new Set(claims.map(c => c.entryId));
   
-  // Verifier si une cellule est verrouillee (toutes ses entries sont claim)
+  // Verifier si une cellule est verrouillee (au moins une entry est claim)
   const isCellLocked = useCallback((cell) => {
     if (cell.type !== 'letter') return false;
     const entryIds = Array.isArray(cell.entryIds) ? cell.entryIds : (cell.entryId || '').split(',').filter(Boolean);
-    return entryIds.length > 0 && entryIds.every(id => claimedEntries.has(id));
+    return entryIds.some(id => claimedEntries.has(id));
   }, [claimedEntries]);
   
   // Trouver la prochaine cellule de type "letter" non verrouillee dans une direction
@@ -265,19 +265,31 @@ export default function GamePage() {
   
   // Gerer le clic sur une definition - selectionner la 1ere cellule du mot
   const handleClueClick = useCallback((row, col, clueDirection, entryId) => {
-    if (!crossword) return;
+    console.log('Clue clicked:', { row, col, clueDirection, entryId });
     
-    // Definir la direction en fonction de la fleche
+    if (!crossword) {
+      console.log('No crossword data');
+      return;
+    }
+    
+    // Definir la direction en fonction de la fleche de la definition
+    // 'right' = fleche vers la droite = ecriture horizontale = 'across'
+    // 'down' = fleche vers le bas = ecriture verticale = 'down'
     const newDir = clueDirection === 'right' ? 'across' : 'down';
+    console.log('Setting direction to:', newDir);
     setDirection(newDir);
     
     // Trouver la premiere cellule du mot (juste apres la definition)
     const targetRow = clueDirection === 'right' ? row : row + 1;
     const targetCol = clueDirection === 'right' ? col + 1 : col;
     
+    console.log('Target cell:', { targetRow, targetCol });
+    
     // Verifier que c'est bien une cellule lettre
     const { cells: gridCells } = crossword.gridData;
     const targetCell = gridCells.find(c => c.row === targetRow && c.col === targetCol);
+    
+    console.log('Found target cell:', targetCell);
     
     if (targetCell && targetCell.type === 'letter') {
       selectCell(targetRow, targetCol);
