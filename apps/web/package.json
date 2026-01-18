@@ -21,7 +21,6 @@
     "socket.io-client": "^4.7.2"
   },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.52.5",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
@@ -31,6 +30,7 @@
     "vite": "^5.0.8"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.52.5"
+    "@rollup/rollup-linux-x64-gnu": "^4.52.5",
+    "@rollup/rollup-win32-x64-msvc": "^4.52.5"
   }
 }

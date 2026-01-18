@@ -1,5 +1,5 @@
 [phases.install]
-cmds = ["rm -rf node_modules package-lock.json && npm cache clean --force && npm install --force --legacy-peer-deps --omit=optional"]
+cmds = ["rm -rf node_modules package-lock.json && npm install --legacy-peer-deps"]
 
 [phases.build]
 cmds = ["npm run build"]
