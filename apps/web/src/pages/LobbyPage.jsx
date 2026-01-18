@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, LogIn, Users, RefreshCw, Copy, Check } from 'lucide-react';
+import { Plus, LogIn, Users, RefreshCw, Copy, Check, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { gamesApi } from '../lib/api';
@@ -67,7 +67,15 @@ export default function LobbyPage() {
       navigate(`/game/${result.code}`);
     } catch (error) {
       console.error('Erreur creation partie:', error);
-      toast.error('Erreur lors de la création de la partie');
+      
+      // Gérer l'erreur de stock vide
+      if (error.response?.status === 503 || error.message?.includes('grille')) {
+        toast.error('⚠️ Aucune grille disponible ! Importez des grilles pour jouer.', {
+          duration: 5000
+        });
+      } else {
+        toast.error('Erreur lors de la création de la partie');
+      }
     }
   };
   
@@ -106,6 +114,24 @@ export default function LobbyPage() {
     updateColor(newColor);
     setShowPseudoModal(false);
     toast.success(`Bienvenue ${newPseudo} !`);
+  };
+  
+  // Supprimer une partie
+  const handleDeleteGame = async (code) => {
+    if (!confirm('Supprimer cette partie ?')) return;
+    
+    try {
+      await gamesApi.delete(code, pseudo);
+      toast.success('Partie supprimée');
+      loadGames();
+    } catch (error) {
+      console.error('Erreur suppression:', error);
+      if (error.response?.status === 403) {
+        toast.error('Vous n\'êtes pas le créateur de cette partie');
+      } else {
+        toast.error('Erreur lors de la suppression');
+      }
+    }
   };
   
   return (
@@ -234,7 +260,9 @@ export default function LobbyPage() {
                       <GameCard 
                         key={game.code} 
                         game={game} 
+                        currentPseudo={pseudo}
                         onJoin={handleJoinGame}
+                        onDelete={handleDeleteGame}
                       />
                     ))}
                   </AnimatePresence>
@@ -264,8 +292,11 @@ export default function LobbyPage() {
 }
 
 // Composant carte de partie - Responsive
-function GameCard({ game, onJoin }) {
+function GameCard({ game, currentPseudo, onJoin, onDelete }) {
   const [copied, setCopied] = useState(false);
+  
+  const ownerPseudo = game.ownerPseudo || game.owner_pseudo;
+  const isOwner = currentPseudo && ownerPseudo === currentPseudo;
   
   const copyCode = async () => {
     await navigator.clipboard.writeText(game.code);
@@ -293,18 +324,31 @@ function GameCard({ game, onJoin }) {
         </button>
         
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-sm sm:text-base truncate">{game.ownerPseudo || game.owner_pseudo}</p>
+          <p className="font-medium text-sm sm:text-base truncate">
+            {ownerPseudo}
+            {isOwner && <span className="ml-2 text-xs text-zwords-accent">(vous)</span>}
+          </p>
           <p className="text-xs sm:text-sm text-gray-400">
-            {game.theme} • {game.difficulty}
+            {game.difficulty}
           </p>
         </div>
       </div>
       
-      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+      <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
         <span className="text-xs sm:text-sm text-gray-400 flex items-center gap-1">
           <Users className="w-3 h-3 sm:w-4 sm:h-4" />
           {game.playerCount || 0}
         </span>
+        
+        {isOwner && (
+          <button
+            onClick={() => onDelete(game.code)}
+            className="p-1.5 sm:p-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 transition-colors"
+            title="Supprimer la partie"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
         
         <button
           onClick={() => onJoin(game.code)}

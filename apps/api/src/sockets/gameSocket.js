@@ -59,7 +59,7 @@ export function initializeSocketHandlers(io) {
         const crossword = await gameService.getCurrentCrossword(game.id);
         const players = await gameService.getPlayers(game.id);
         const cells = crossword ? await gameService.getGridCells(crossword.id) : {};
-        const claims = crossword ? await gameService.getEntryClaims(crossword.id) : [];
+        const claims = crossword ? await gameService.getEntryClaimsWithColors(crossword.id, game.id) : [];
         const messages = await messageService.getMessages(game.id, 50);
         const presences = presence.getGamePresences(gameCode);
         const scoreboard = await getScoreboard(game.id);
@@ -82,7 +82,8 @@ export function initializeSocketHandlers(io) {
           cells,
           claims: claims.map(c => ({
             entryId: c.entry_id,
-            claimedByPseudo: c.claimed_by_pseudo
+            pseudo: c.claimed_by_pseudo,
+            color: c.color
           })),
           players: players.map(p => ({
             pseudo: p.pseudo,

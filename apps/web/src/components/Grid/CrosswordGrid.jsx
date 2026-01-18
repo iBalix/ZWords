@@ -160,6 +160,8 @@ export default function CrosswordGrid({
               col={cell.col}
               type={cell.type}
               clue={cell.clue}
+              clueFull={cell.clueFull}
+              answer={cell.answer}
               direction={cell.direction}
               entryId={cell.entryId}
               value={value}

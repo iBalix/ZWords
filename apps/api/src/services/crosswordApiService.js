@@ -244,6 +244,7 @@ function convertApiResponse(apiData) {
       gridMap[defKey] = {
         type: 'clue',
         clue: wordData.definition,
+        answer: wordData.word,
         direction: wordData.direction === 'across' ? 'right' : 'down',
         entryId
       };
@@ -267,6 +268,7 @@ function convertApiResponse(apiData) {
           col: c,
           type: 'clue',
           clue: cellData.clue,
+          answer: cellData.answer,
           direction: cellData.direction,
           entryId: cellData.entryId
         });

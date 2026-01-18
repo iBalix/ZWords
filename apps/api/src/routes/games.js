@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { ownerPseudo, theme, difficulty } = req.body;
+    const { ownerPseudo, difficulty } = req.body;
     
     if (!isValidPseudo(ownerPseudo)) {
       return res.status(400).json({ error: 'Pseudo invalide' });
@@ -35,7 +35,7 @@ router.post('/', async (req, res) => {
     
     const { game, crossword } = await gameService.createGame(
       ownerPseudo.trim(),
-      theme || 'general',
+      'random',
       difficulty || 'easy'
     );
     
@@ -117,8 +117,8 @@ router.get('/:code', async (req, res) => {
     // Recuperer etat des cellules
     const cells = crossword ? await gameService.getGridCells(crossword.id) : {};
     
-    // Recuperer claims
-    const claims = crossword ? await gameService.getEntryClaims(crossword.id) : [];
+    // Recuperer claims avec couleurs
+    const claims = crossword ? await gameService.getEntryClaimsWithColors(crossword.id, game.id) : [];
     
     // Recuperer messages
     const messages = await messageService.getMessages(game.id, 50);
@@ -143,7 +143,8 @@ router.get('/:code', async (req, res) => {
       cells,
       claims: claims.map(c => ({
         entryId: c.entry_id,
-        claimedByPseudo: c.claimed_by_pseudo
+        pseudo: c.claimed_by_pseudo,
+        color: c.color
       })),
       players: players.map(p => ({
         pseudo: p.pseudo,

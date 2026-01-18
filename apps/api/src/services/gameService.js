@@ -206,6 +206,31 @@ export async function getEntryClaims(crosswordId) {
 }
 
 /**
+ * Recupere les claims avec les couleurs des joueurs
+ */
+export async function getEntryClaimsWithColors(crosswordId, gameId) {
+  const { data: claims } = await supabase
+    .from('zwords_entry_claims')
+    .select('*')
+    .eq('crossword_id', crosswordId);
+  
+  if (!claims || claims.length === 0) return [];
+  
+  // Récupérer les joueurs pour avoir les couleurs
+  const players = await getPlayers(gameId);
+  const playerColors = {};
+  for (const p of players) {
+    playerColors[p.pseudo] = p.color;
+  }
+  
+  // Ajouter la couleur à chaque claim
+  return claims.map(c => ({
+    ...c,
+    color: playerColors[c.claimed_by_pseudo] || '#888888'
+  }));
+}
+
+/**
  * Verifie si une entry est deja claim
  */
 export async function isEntryClaimed(crosswordId, entryId) {
